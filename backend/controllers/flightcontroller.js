@@ -1,25 +1,33 @@
 import Amadeus from "amadeus";
 
 function formatFlightOffers(flightOffers) {
-    let formattedResult = {};
-    
-    flightOffers.forEach(offer => {
-        let airlineCode = offer.validatingAirlineCodes[0]; // Extract airline code
-        let price = `₹${parseFloat(offer.price.total).toLocaleString("en-IN")}`; // Format price
-        
-        // Map airline codes to airline names
-        let airlineMap = {
-            "6E": "indigo",
-            "I5": "airAsia",
-            "UK": "vistara",
-            "AI": "airIndia"
-        };
+  let formattedResult = {};
 
-        let airlineName = airlineMap[airlineCode] || airlineCode; // Default to code if name not found
-        formattedResult[airlineName] = price;
-    });
+  flightOffers.forEach((offer) => {
+    let airlineCode = offer.validatingAirlineCodes[0];
+    let price = parseFloat(offer.price.grandTotal);
 
-    return formattedResult;
+    let airlineMap = {
+      "6E": "indigo",
+      I5: "airAsia",
+      UK: "vistara",
+      AI: "airIndia",
+    };
+
+    let airlineName = airlineMap[airlineCode] || airlineCode;
+
+    if (!formattedResult[airlineName] || price < formattedResult[airlineName]) {
+      formattedResult[airlineName] = price;
+    }
+  });
+
+  for (let airline in formattedResult) {
+    formattedResult[airline] = `₹${formattedResult[airline].toLocaleString(
+      "en-IN"
+    )}`;
+  }
+
+  return formattedResult;
 }
 
 const amadeus = new Amadeus({
@@ -29,26 +37,43 @@ const amadeus = new Amadeus({
 
 const getFlights = async (req, res) => {
   try {
-    const { origin, destination, date } = req.body;
+    const { origin, destination, date, returnDate, passengers, tripType } =
+      req.body;
 
-    if (!origin || !destination || !date) {
+    if (!origin || !destination || !date || !passengers || !tripType) {
       return res
         .status(400)
         .json({ error: "Missing required query parameters" });
     }
 
-    const response = await amadeus.shopping.flightOffersSearch.get({
+    if (tripType === "round" && !returnDate) {
+      return res
+        .status(400)
+        .json({ error: "Return date is required for round trips" });
+    }
+
+    const searchParams = {
       originLocationCode: origin,
       destinationLocationCode: destination,
       departureDate: date,
-      adults: "1",
+      adults: passengers.toString(),
       currencyCode: "INR",
-    });
+    };
+
+    if (tripType === "round") {
+      searchParams.returnDate = returnDate;
+    }
+
+    console.log(searchParams);
+
+    const response = await amadeus.shopping.flightOffersSearch.get(
+      searchParams
+    );
 
     const result = formatFlightOffers(response.data);
-    console.log(result)
+    console.log(result);
 
-    res.json(response.data);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
