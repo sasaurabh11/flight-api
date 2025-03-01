@@ -1,4 +1,4 @@
-import FlightList from "./components/flightList";
+import FlightList from "./components/FlightList";
 import {
   SignedIn,
   SignedOut,

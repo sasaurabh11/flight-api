@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
 import { fetchFlights } from "../service/api";
-import FlightCard from "./flightCard";
+import FlightCard from "./FlightCard";
 import LoadingSpinner from "./LoadingSpinner";
 
 const FlightList = () => {
